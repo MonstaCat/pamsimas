@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
 	StyleSheet,
 	View,
 	Text,
 	useColorScheme,
-	SafeAreaView
+	SafeAreaView,
+	Platform
 } from "react-native";
 
 import { off } from "firebase/database";
@@ -24,6 +25,70 @@ import BarChartComponent from "./components/BarChart";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";
 
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
+
+Notifications.setNotificationHandler({
+	handleNotification: async () => ({
+		shouldShowAlert: true,
+		shouldPlaySound: true,
+		shouldSetBadge: false
+	})
+});
+
+// Can use this function below OR use Expo's Push Notification Tool from: https://expo.dev/notifications
+async function sendPushNotification(expoPushToken) {
+	const message = {
+		to: expoPushToken,
+		sound: "default",
+		title: "Pipa Terindikasi Bocor",
+		body: "Segera cek pipa pada area A!",
+		data: { someData: "goes here" }
+	};
+
+	await fetch("https://exp.host/--/api/v2/push/send", {
+		method: "POST",
+		headers: {
+			Accept: "application/json",
+			"Accept-encoding": "gzip, deflate",
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify(message)
+	});
+}
+
+async function registerForPushNotificationsAsync() {
+	let token;
+	if (Device.isDevice) {
+		const { status: existingStatus } =
+			await Notifications.getPermissionsAsync();
+		let finalStatus = existingStatus;
+		if (existingStatus !== "granted") {
+			const { status } = await Notifications.requestPermissionsAsync();
+			finalStatus = status;
+		}
+		if (finalStatus !== "granted") {
+			alert("Failed to get push token for push notification!");
+			return;
+		}
+		token = (await Notifications.getExpoPushTokenAsync()).data;
+		console.log(token);
+	} else {
+		alert("Must use physical device for Push Notifications");
+	}
+
+	if (Platform.OS === "android") {
+		Notifications.setNotificationChannelAsync("default", {
+			name: "default",
+			importance: Notifications.AndroidImportance.MAX,
+			vibrationPattern: [0, 250, 250, 250],
+			lightColor: "#FF231F7C"
+		});
+	}
+
+	return token;
+}
+
 function StatusScreen({ navigation }) {
 	const [isRunning, setIsRunning] = useState(0);
 	const [isLeak, setIsLeak] = useState(0);
@@ -31,7 +96,7 @@ function StatusScreen({ navigation }) {
 
 	useEffect(() => {
 		const isRunningRef = ref(database, "Status/isRunning");
-		const isLeakRef = ref(database, "Status/isLeak");
+		const isLeakRef = ref(database, "Status/LeakConfirmed");
 		const dayTotalVolumeRef = ref(database, "Status/dayTotalVolume");
 
 		const isRunningListener = onValue(isRunningRef, (snapshot) => {
@@ -66,9 +131,9 @@ function StatusScreen({ navigation }) {
 	}, []);
 
 	const renderStatus = () => {
-		if (isRunning === 0) {
+		if (isRunning === false) {
 			return "Mati";
-		} else if (isRunning === 1) {
+		} else if (isRunning === true) {
 			return "Hidup";
 		} else {
 			return "Unknown";
@@ -76,9 +141,9 @@ function StatusScreen({ navigation }) {
 	};
 
 	const renderLeakStatus = () => {
-		if (isLeak === 0) {
+		if (isLeak === false) {
 			return "Tidak Bocor";
-		} else if (isLeak === 1) {
+		} else if (isLeak === true) {
 			return "Bocor";
 		} else {
 			return "Unknown";
@@ -154,6 +219,50 @@ const Tab = createBottomTabNavigator();
 
 export default function App() {
 	const scheme = useColorScheme();
+
+	const [expoPushToken, setExpoPushToken] = useState("");
+	const [notification, setNotification] = useState(false);
+	const notificationListener = useRef();
+	const responseListener = useRef();
+
+	useEffect(() => {
+		const isLeakConfirmedRef = ref(database, "Status/LeakConfirmed");
+
+		const isLeakConfirmedListener = onValue(
+			isLeakConfirmedRef,
+			(snapshot) => {
+				if (snapshot.exists() && snapshot.val() === true) {
+					sendPushNotification(expoPushToken);
+				}
+			}
+		);
+
+		registerForPushNotificationsAsync().then((token) =>
+			setExpoPushToken(token)
+		);
+
+		notificationListener.current =
+			Notifications.addNotificationReceivedListener((notification) => {
+				setNotification(notification);
+			});
+
+		responseListener.current =
+			Notifications.addNotificationResponseReceivedListener(
+				(response) => {
+					console.log(response);
+				}
+			);
+
+		return () => {
+			Notifications.removeNotificationSubscription(
+				notificationListener.current
+			);
+			Notifications.removeNotificationSubscription(
+				responseListener.current
+			);
+			off(isLeakConfirmedRef, isLeakConfirmedListener);
+		};
+	}, []);
 
 	return (
 		<NavigationContainer
