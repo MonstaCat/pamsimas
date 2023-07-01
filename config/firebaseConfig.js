@@ -2,14 +2,15 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, off } from "firebase/database";
 
 const firebaseConfig = {
-	apiKey: "AIzaSyBDSvrxm-tYTErYoxX8AhOzruglgMuZtQ8",
-	authDomain: "esp32-database-3c1ad.firebaseapp.com",
-	databaseURL: "https://esp32-database-3c1ad-default-rtdb.firebaseio.com",
-	projectId: "esp32-database-3c1ad",
-	storageBucket: "esp32-database-3c1ad.appspot.com",
-	messagingSenderId: "128794389589",
-	appId: "1:128794389589:web:26ee272fcf2a54e37038dc",
-	measurementId: "G-2CYRZN3BTJ"
+	apiKey: "AIzaSyAzyAYysQNeR4LtxCo3OmpK-WfJ3XHxnY0",
+	authDomain: "pamsimas-firebase.firebaseapp.com",
+	databaseURL:
+		"https://pamsimas-firebase-default-rtdb.asia-southeast1.firebasedatabase.app",
+	projectId: "pamsimas-firebase",
+	storageBucket: "pamsimas-firebase.appspot.com",
+	messagingSenderId: "559807259172",
+	appId: "1:559807259172:web:4937ff9c7480743524aeb1",
+	measurementId: "G-RDTKFEF3VL"
 };
 
 const app = initializeApp(firebaseConfig);

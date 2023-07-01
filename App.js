@@ -97,7 +97,7 @@ function StatusScreen({ navigation }) {
 	useEffect(() => {
 		const isRunningRef = ref(database, "Status/isRunning");
 		const isLeakRef = ref(database, "Status/LeakConfirmed");
-		const dayTotalVolumeRef = ref(database, "Status/dayTotalVolume");
+		const dayTotalVolumeRef = ref(database, "Sensors/totalMilliLitres1");
 
 		const isRunningListener = onValue(isRunningRef, (snapshot) => {
 			if (snapshot.exists()) {
@@ -117,8 +117,9 @@ function StatusScreen({ navigation }) {
 			dayTotalVolumeRef,
 			(snapshot) => {
 				if (snapshot.exists()) {
-					const value = snapshot.val();
-					setDayTotalVolume(value);
+					const valueInMilliliters = snapshot.val();
+					const valueInLiters = valueInMilliliters / 1000;
+					setDayTotalVolume(valueInLiters);
 				}
 			}
 		);
@@ -193,6 +194,47 @@ function StatusScreen({ navigation }) {
 }
 
 function RiwayatScreen({ navigation }) {
+	const [totalMonthVolume, setTotalMonthVolume] = useState(0);
+
+	useEffect(() => {
+		const currentYear = new Date().getFullYear(); // Get the current year
+		const currentMonth = new Date().toLocaleString("en-US", {
+			month: "long"
+		}); // Get the current month (e.g., "July")
+
+		const monthVolumeRef = ref(
+			database,
+			`pumpRunningHistory/${currentYear}/${currentMonth}`
+		);
+
+		const monthVolumeListener = onValue(monthVolumeRef, (snapshot) => {
+			if (snapshot.exists()) {
+				let totalMonthVolume = 0;
+
+				snapshot.forEach((daySnapshot) => {
+					const dayVolume = daySnapshot
+						.child("totalMilliLitres")
+						.val();
+					totalMonthVolume += dayVolume;
+				});
+
+				const valueInLiters = totalMonthVolume / 1000;
+				setTotalMonthVolume(valueInLiters);
+			}
+		});
+
+		return () => {
+			off(monthVolumeRef, monthVolumeListener);
+		};
+	}, []);
+
+	const formatVolume = (value) => {
+		return value.toLocaleString(undefined, {
+			minimumFractionDigits: 0,
+			maximumFractionDigits: 0
+		});
+	};
+
 	return (
 		<SafeAreaView style={styles.container}>
 			<View>
@@ -205,11 +247,11 @@ function RiwayatScreen({ navigation }) {
 			<Text style={styles.heading}>Total Penggunaan Air</Text>
 			<Card
 				title="Total Penggunaan Bulan Ini"
-				value="123.456"
+				value={formatVolume(totalMonthVolume)}
 				iconName="bar-chart"
 				color="rgb(10, 132, 255)"
 				additionalText="liter"
-				footerText="Terakhir diperbarui 18/05/2022"
+				footerText={`Terakhir diperbarui ${new Date().toLocaleDateString()}`}
 			/>
 		</SafeAreaView>
 	);
