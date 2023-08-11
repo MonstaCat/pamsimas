@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Dimensions } from "react-native";
 import { BarChart } from "react-native-chart-kit";
-import { database, ref, onValue } from "../config/firebaseConfig";
+import { database, ref, onValue, off } from "../config/firebaseConfig";
 import moment from "moment";
 
 const daysOfWeek = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
@@ -40,17 +40,16 @@ const BarChartComponent = () => {
 									([month, monthData]) => {
 										Object.entries(monthData).forEach(
 											([day, dayData]) => {
-												const runningTimeInSeconds =
-													dayData.runningTime;
-												const runningTimeInMinutes =
-													runningTimeInSeconds / 60; // Convert running time to minutes
+												const totalLitres =
+													dayData.totalMilliLitres /
+													1000; // Convert totalMilliLitres to litres
 												const dayOfWeek = moment(
 													day,
 													"DD"
 												).isoWeekday();
 												formattedChartData[
 													dayOfWeek - 1
-												] += runningTimeInMinutes; // Accumulate running time for each day of the week
+												] += totalLitres; // Accumulate totalLitres for each day of the week
 											}
 										);
 									}
@@ -76,8 +75,7 @@ const BarChartComponent = () => {
 	}, []);
 
 	const formatValue = (value) => {
-		const hours = Math.round(value * 60 * 10) / 10; // Convert value to hours and round to one decimal place
-		return hours.toFixed(1); // Return the formatted value with one decimal place
+		return Math.round(value);
 	};
 
 	// Format the chart data with the desired format
@@ -85,9 +83,7 @@ const BarChartComponent = () => {
 		labels: daysOfWeek,
 		datasets: [
 			{
-				data: chartData.map(
-					(value) => Math.round((value / 60) * 10) / 10
-				) // Convert minutes to hours and round to one decimal place
+				data: chartData.map(Math.round)
 			}
 		]
 	};

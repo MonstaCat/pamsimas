@@ -1,5 +1,8 @@
 {
-  "projects": {
-    "default": "pamsimas-firebase"
-  }
+	"projects": {
+		"default": "pamsimas-firebase",
+		"pamsimas": "pamsimas-firebase"
+	},
+	"targets": {},
+	"etags": {}
 }

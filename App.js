@@ -241,7 +241,7 @@ function RiwayatScreen({ navigation }) {
 				<Text style={styles.title}>Riwayat</Text>
 			</View>
 
-			<Text style={styles.heading}>Riwayat Hidup Pompa (/Jam)</Text>
+			<Text style={styles.heading}>Riwayat Air Digunakan (/Liter)</Text>
 			<BarChartComponent />
 
 			<Text style={styles.heading}>Total Penggunaan Air</Text>
